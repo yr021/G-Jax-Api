@@ -3,7 +3,10 @@ package com.rac021.jax.api.crypto ;
 
 import java.util.List ;
 import java.util.ArrayList ;
+import java.util.logging.Level;
+import java.util.logging.Logger ;
 import java.util.stream.Collectors ;
+import com.rac021.jax.api.exceptions.BusinessException ;
 
 /**
  *
@@ -37,6 +40,28 @@ public enum CipherTypes {
         }
         
        return new ArrayList() ;
+    }
+    
+    public static CipherTypes toCipherTypes( String cipherTypes ) {
+        
+      try {
+            return  CipherTypes.valueOf(cipherTypes.trim()) ;
+            
+      } catch( Exception ex ) {
+          
+          try {
+              throw new BusinessException( " CipherTypes  [ " + cipherTypes + " ] "
+                                           + " doesn't exists ! " )               ;
+          } catch (BusinessException ex1) {
+              Logger.getLogger(CipherTypes.class.getName())
+                                          .log(Level.SEVERE, null, ex ) ;
+              Logger.getLogger(CipherTypes.class.getName())
+                                          .log(Level.SEVERE, null, ex1) ;
+          }
+      }
+      
+      return null ;
+        
     }
 
   

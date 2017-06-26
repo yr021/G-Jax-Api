@@ -208,13 +208,14 @@ public class ServicesManager {
         return ciphers.getOrDefault(serviceName, new HashSet<>() ) ;
     }
     
-    public Set<AcceptType> getAcceptForServiceName( String serviceName ) {
+    public Set<AcceptType> getAcceptForServiceName( String serviceName )   {
         return accept.getOrDefault(serviceName, new HashSet<>() ) ;
     }
     
     public boolean containCiphersForService( String serviceName, String cipher ) {
         return ciphers.containsKey(serviceName) ?
-               ciphers.get(serviceName).contains( CipherTypes.valueOf(cipher)) :
+               ciphers.get(serviceName)
+                      .contains( CipherTypes.toCipherTypes(cipher)) :
                false ;
     }
     
