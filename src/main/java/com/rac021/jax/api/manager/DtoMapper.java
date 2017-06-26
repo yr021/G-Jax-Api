@@ -11,22 +11,29 @@ import com.rac021.jax.api.qualifiers.ResultColumn ;
  *
  * @author ryahiaoui
  */
+
 public class DtoMapper {
 
-    public static <T> List<T> map(List<Object[]> objectArrayList, Class<T> genericType, List<String> filterdIndex  ) {
-        List<T> ret = new ArrayList<>() ;
-        if(objectArrayList.isEmpty()) return ret ;
+    public static <T> List<T> map( List<Object[]> objectArrayList , 
+                                   Class<T> genericType           , 
+                                   List<String> filterdIndex   )  {
+        
+        List<T> ret = new ArrayList<>()                               ;
+        if(objectArrayList.isEmpty()) return ret                      ;
         List<Field> mappingFields = getAnnotatedFields( genericType ) ;
+        
         try {
             for (Object[] objectArr : objectArrayList) {
                 T t = genericType.newInstance();
                 for (int i = 0; i < objectArr.length; i++) {
                     if( i < mappingFields.size() ) {
-                        Field field = t.getClass().getDeclaredField(mappingFields.get(i).getName()) ;
+                        Field field = t.getClass()
+                                       .getDeclaredField( mappingFields.get(i)
+                                       .getName()) ;
                         if( filterdIndex  != null   &&
                             !filterdIndex.isEmpty() && 
                             !filterdIndex.contains(field.getName())
-                            ) continue ;
+                            )  continue ;
                         
                            // if(field.getAnnotation(Public.class) != null ) {
                            field.setAccessible(true)    ;
@@ -38,19 +45,22 @@ public class DtoMapper {
             }
         } catch (Exception ex)  {
            ex.printStackTrace() ;
-           ret.clear() ;
+           ret.clear()          ;
         }
         
         return ret ;
     }
 
     private static <T> List<Field> getAnnotatedFields (Class<T> genericType ) {
-        Field[] fields = genericType.getDeclaredFields() ;
+        
+        Field[] fields            = genericType.getDeclaredFields()         ;
+        
         List<Field> orderedFields = Arrays.asList(new Field[fields.length]) ;
-        for (int i = 0; i < fields.length; i++) {
+        
+        for (int i = 0; i < fields.length; i++)  {
             if (fields[i].isAnnotationPresent( ResultColumn.class )) {
                 ResultColumn nqrc = fields[i].getAnnotation(ResultColumn.class) ;
-                orderedFields.set(nqrc.index(), fields[i]) ;
+                orderedFields.set(nqrc.index(), fields[i])                      ;
             }
         }
         return orderedFields ;

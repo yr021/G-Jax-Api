@@ -6,7 +6,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.github.rac021</groupId>
     <artifactId>G-Jax-Api</artifactId>
-    <version>1.0</version>
+    <version>1.1</version>
     <name>G-Jax-Api</name>
     <description>Jax-rs Streamer Api</description>
     <url>https://github.com/rac021/G-Jax-Api</url>

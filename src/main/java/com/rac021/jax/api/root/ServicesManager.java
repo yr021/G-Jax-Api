@@ -1,8 +1,10 @@
 
 package com.rac021.jax.api.root ;
 
+import java.util.Set ;
 import java.util.Map ;
 import java.util.List ;
+import java.util.HashSet ;
 import javax.ejb.Startup ;
 import java.util.HashMap ;
 import javax.inject.Inject ;
@@ -17,6 +19,8 @@ import com.rac021.jax.api.pojos.Query ;
 import javax.persistence.EntityManager ;
 import javax.enterprise.inject.spi.Bean ;
 import javax.persistence.PersistenceContext ;
+import com.rac021.jax.api.crypto.AcceptType ;
+import com.rac021.jax.api.crypto.CipherTypes ;
 import com.rac021.jax.api.qualifiers.SqlQuery ;
 import com.rac021.jax.api.analyzer.SqlAnalyzer ;
 import javax.enterprise.inject.spi.BeanManager ;
@@ -26,7 +30,6 @@ import com.rac021.jax.api.qualifiers.security.Policy ;
 import com.rac021.jax.api.qualifiers.ResourceRegistry ;
 import com.rac021.jax.api.qualifiers.security.Secured ;
 import io.github.lukehutch.fastclasspathscanner.FastClasspathScanner ;
-
 
 /**
  *
@@ -42,10 +45,15 @@ public class ServicesManager {
     @PersistenceContext  (unitName = "MyPU")
     private EntityManager entityManager ;
 
-    private final Map<String, Object>        publicServices        = new HashMap<>() ;
-    private final Map<String, Object>        customSignOnServices  = new HashMap<>() ;
-    private final Map<String, Object>        ssoServices           = new HashMap<>() ;
-    private final Map<String, List<Query> >  resources             = new HashMap<>() ;
+    private final Map<String, Object>             publicServices        = new HashMap<>() ;
+    private final Map<String, Object>             customSignOnServices  = new HashMap<>() ;
+    private final Map<String, Object>             ssoServices           = new HashMap<>() ;
+    private final Map<String, List<Query> >       resources             = new HashMap<>() ;
+    
+    private final Map<String, Set<CipherTypes> >  ciphers               = new HashMap<>() ;
+    private final Map<String, Set<AcceptType> >   accept                = new HashMap<>() ;
+    
+    private final Map<String, Integer >           maxThreadsPerService = new HashMap<>()  ;
    
     @Inject
     private BeanManager bm ;
@@ -76,11 +84,20 @@ public class ServicesManager {
         }
     }
     
-    public  Object get( String id )                 {
+    public void registerCiphers ( String id, List<CipherTypes> ciphers ) {
+         this.ciphers.computeIfAbsent( id, k -> new HashSet(ciphers) ) ;
+    }
+    
+    public void registerAcceptTypes ( String id, List<AcceptType> accepts ) {
+         this.accept.computeIfAbsent( id, k -> new HashSet(accepts) ) ;
+    }
+    
+    
+            
+    public  Object get( String id )  {
       return publicServices.getOrDefault(        id , 
               customSignOnServices.getOrDefault( id , 
                       ssoServices.getOrDefault(  id , null )))  ;
-              
     }
     
     public Policy contains( String idService ) {
@@ -139,12 +156,11 @@ public class ServicesManager {
         List<String> namesOfAnnotationsWithMetaAnnotation = new FastClasspathScanner().scan()
                                                                 .getNamesOfClassesWithAnnotation(registryAnnotation) ;
         
-        namesOfAnnotationsWithMetaAnnotation.forEach( resource -> {
-              try {
-                   extractAndRegisterQueries( Class.forName(resource),queryAnnotation );
-               } catch ( ClassNotFoundException ex) {
-                    Logger.getLogger(ServicesManager.class.getName()).log(Level.SEVERE, null, ex) ;
-               }
+        namesOfAnnotationsWithMetaAnnotation.forEach ( resource -> {  try {
+                 extractAndRegisterQueries( Class.forName(resource),queryAnnotation );
+             } catch ( ClassNotFoundException ex) {
+                  Logger.getLogger(ServicesManager.class.getName()).log(Level.SEVERE, null, ex) ;
+             }
         } ) ;
         
         return new FastClasspathScanner().scan()
@@ -155,7 +171,7 @@ public class ServicesManager {
     public void extractAndRegisterQueries (Class resource, Class queryAnnotation ) {
       
      Connection cnn  = entityManager.unwrap(java.sql.Connection.class )  ;
-     Class<?>     c  = resource          ;
+     Class<?>     c  = resource                                          ;
           
      try {
             Object instance  = c.newInstance()   ;
@@ -179,17 +195,37 @@ public class ServicesManager {
 
     public Field getFieldFor( Class clazz , Class annotation ) {
  
-        for( Field field  : clazz.getDeclaredFields())
-        {
-            if (field.isAnnotationPresent(annotation))
-                {
+        for( Field field  : clazz.getDeclaredFields()) {
+            if (field.isAnnotationPresent(annotation)) {
                       return field ;
-                }
+           }
         }
         
         return null ;
     }
     
+    public Set<CipherTypes> getCiphersForServiceName( String serviceName ) {
+        return ciphers.getOrDefault(serviceName, new HashSet<>() ) ;
+    }
+    
+    public Set<AcceptType> getAcceptForServiceName( String serviceName ) {
+        return accept.getOrDefault(serviceName, new HashSet<>() ) ;
+    }
+    
+    public boolean containCiphersForService( String serviceName, String cipher ) {
+        return ciphers.containsKey(serviceName) ?
+               ciphers.get(serviceName).contains( CipherTypes.valueOf(cipher)) :
+               false ;
+    }
+    
+    public boolean containAcceptForService( String serviceName, String accept )  {
+        return this.accept.containsKey(serviceName) ? 
+               this.accept.get(serviceName)
+                          .contains( AcceptType.valueOf( 
+                                        accept.toUpperCase().replace("/", "_"))) :
+               false ;
+    }
+   
     public void addResource( String resourceName, Query query) {
           this.resources.computeIfAbsent( resourceName , 
                                           k -> new ArrayList<>()).add(query) ;
@@ -198,5 +234,12 @@ public class ServicesManager {
     public List<Query> getQueriesByResourceName( String resourceName ) {
         return resources.getOrDefault(resourceName, null ) ;
     }
-    
+
+    public void apllyMaxThreads(String serviceCode , int maxThreads )  {
+       this.maxThreadsPerService.put(serviceCode, maxThreads ) ;
+    }
+    public int getOrDefaultMaxThreadsFor(String serviceCode ) {
+       return this.maxThreadsPerService.getOrDefault(serviceCode , 4 ) ;
+    }
+
 }

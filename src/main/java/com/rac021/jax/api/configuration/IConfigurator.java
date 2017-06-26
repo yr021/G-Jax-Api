@@ -8,6 +8,6 @@ package com.rac021.jax.api.configuration ;
 public interface IConfigurator {
     
     public default Long getValidRequestTimeout() {
-        return 5l ;
+        return 5l ; // in Seconds
     }
 }

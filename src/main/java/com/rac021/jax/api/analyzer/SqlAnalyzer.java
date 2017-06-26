@@ -36,6 +36,7 @@ import net.sf.jsqlparser.statement.select.SelectExpressionItem ;
  *
  * @author ryahiaoui
  */
+
 public class SqlAnalyzer {
     
     
@@ -83,7 +84,8 @@ public class SqlAnalyzer {
                                    orderByElement.setExpression(expr)    ;
                                    orderElementsList.add(orderByElement) ;
                                } catch (Exception ex) {
-                                   Logger.getLogger(SqlAnalyzer.class.getName()).log(Level.SEVERE, null, ex ) ;
+                                   Logger.getLogger(SqlAnalyzer.class.getName())
+                                                               .log(Level.SEVERE, null, ex ) ;
                                } ;
             }) ;
                      
@@ -95,8 +97,8 @@ public class SqlAnalyzer {
             
             return  query ; 
               
-          } catch( Exception x ) {
-              x.printStackTrace();
+          } catch( Exception x )  {
+              x.printStackTrace() ;
           }
           
           return null ;
@@ -132,7 +134,9 @@ public class SqlAnalyzer {
           
         if( query == null || filters == null ) return null ;
 
-        String joinedParams  = "( " + filters.stream().collect( Collectors.joining(" ) AND ( ") ) + " ) " ;
+        String joinedParams  = "( " + filters.stream()
+                                             .collect( Collectors
+                                             .joining(" ) AND ( ") ) + " ) " ;
           
         try {
             
@@ -140,17 +144,19 @@ public class SqlAnalyzer {
             Select select  = (Select) parserManager.parse(new StringReader(query.getQuery())) ;
             PlainSelect ps = (PlainSelect) select.getSelectBody();
             
-            if(joinedParams.replaceAll(" +", "").trim().equals("()")){
+            if(joinedParams.replaceAll(" +", "").trim().equals("()")) {
                 return select.toString() ;
             }
             
             String newQ = "" ;
 
             if( query.isContainsAggregationFunction()) {
+                
                 Expression having = ps.getHaving() ;
 
                if( having != null ) {
-                 newQ = query.getQuery().replace(having.toString(), having.toString() + " AND " + joinedParams ) ;
+                 newQ = query.getQuery().replace( having.toString() , 
+                                                 having.toString() + " AND " + joinedParams ) ;
                }
                else  {
                  String hav      =  joinedParams ;
@@ -164,7 +170,8 @@ public class SqlAnalyzer {
                 Expression wher = ps.getWhere() ;
 
                 if( wher != null ) {
-                     newQ = query.getQuery().replace(wher.toString(), wher.toString() + " AND " + joinedParams ) ;
+                     newQ = query.getQuery().replace( wher.toString(), 
+                                                      wher.toString() + " AND " + joinedParams ) ;
                 }
                 else  {       
                        try {
@@ -195,11 +202,12 @@ public class SqlAnalyzer {
                                           .map( query -> applyLimitOffset( query))
                                           .collect(toList()) ; 
 
-             System.out.println(" Queries --> " +queries) ;
+             System.out.println(" Queries --> " +collect ) ;
              System.out.println(" Filters --> " +filters ) ;
-             return collect ;
+             return collect                                ;
              
-           } catch( Exception x ) {
+           } catch( Exception x )  {
+               x.printStackTrace() ;
            }
            return null ;
         }
@@ -233,9 +241,12 @@ public class SqlAnalyzer {
 
     }
    
-    public static List<String> buildFilters( List<Query> queries, MultivaluedMap<String, String> queryParams ) {
+    public static List<String> buildFilters( List<Query> queries, 
+                                             MultivaluedMap<String, String> queryParams ) {
         
-        if(queryParams.isEmpty() ) return queries.stream().map( query ->  applyLimitOffset(query.getQuery())).collect(toList()) ;
+        if(queryParams.isEmpty() ) return queries.stream().map( query ->  
+                                          applyLimitOffset(query.getQuery()))
+                                         .collect(toList()) ;
         
         List<String> filters = Lexer.decodeExpression(queries.get(0), queryParams) ;
         
@@ -258,7 +269,8 @@ public class SqlAnalyzer {
                 return null ;
             }
              
-            Expression expression = ((SelectExpressionItem) ps.getSelectItems().get(index)).getExpression();
+            Expression expression = ((SelectExpressionItem) 
+                                    ps.getSelectItems().get(index)).getExpression() ;
           
            if (expression instanceof Function) {
                  

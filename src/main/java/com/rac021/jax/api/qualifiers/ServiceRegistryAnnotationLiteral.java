@@ -8,7 +8,8 @@ import javax.enterprise.util.AnnotationLiteral ;
  * @author ryahiaoui
  */
 
-public class ServiceRegistryAnnotationLiteral extends AnnotationLiteral<ServiceRegistry>  implements ServiceRegistry {  
+public class ServiceRegistryAnnotationLiteral extends    AnnotationLiteral<ServiceRegistry>  
+                                              implements ServiceRegistry                  {  
     
     private final String value;
     

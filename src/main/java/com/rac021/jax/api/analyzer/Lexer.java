@@ -18,18 +18,17 @@ import com.rac021.jax.api.exceptions.BusinessException ;
  */
 public enum Lexer {
     
-   G("_>_")     ,
-   L("_<_")     ,
-   or("_or_")   ,
-   OR("_OR_")   ,
-   not("_not_") ,
-   NOT("_NOT_") ,
-   and("_and_") ,
-   AND("_AND_") ,
-   GE("_>=_")   ,
-   LE("_<=_")   ,
-   EQ("_=_")    ;
-   
+   G   ( "_>_"   ) ,
+   L   ( "_<_"   ) ,
+   or  ( "_or_"  ) ,
+   OR  ( "_OR_"  ) ,
+   not ( "_not_" ) ,
+   NOT ( "_NOT_" ) ,
+   and ( "_and_" ) ,
+   AND ( "_AND_" ) ,
+   GE  ( "_>=_"  ) ,
+   LE  ( "_<=_"  ) ,
+   EQ  ( "_=_"   ) ;
    
    static final String  expectStrings  = "= > >= < != "  ;
    
@@ -70,7 +69,6 @@ public enum Lexer {
        }
    }
    
-   
    public static List<String> decodeExpression(  Query query , 
                                                  MultivaluedMap<String, String> sqlParams ) {
        
@@ -78,11 +76,13 @@ public enum Lexer {
          
          sqlParams.forEach((key, list) -> list.forEach( v -> {
                                             if( query.getParameters().containsKey(key))
-                                            processedQ.add( "( " + query.getParameters().get(key).get( Query.FULL_NAME )  + " " +
+                                            processedQ.add( "( " + query.getParameters().get(key)
+                                                                        .get( Query.FULL_NAME )  +
+                                                                        " " +
                                                                    _process( key                            , 
-                                                                              v.replaceAll(" +", " ").trim() , 
-                                                                              query.getParameters() 
-                                                                            )
+                                                                             v.replaceAll(" +", " ").trim() , 
+                                                                             query.getParameters() 
+                                                                           )
                                                           ) ;
                                            }
                           )) ;
@@ -96,8 +96,10 @@ public enum Lexer {
   
    public static String decodeExpression( String key , String expression ) { 
          
-       /* code=_=_10_or_>=_20_NOT_"_or_"     */
-       /* code= = _10 or >= _20 not _"_or_"  */
+       /* 
+         code=_=_10_or_>=_20_NOT_"_or_"
+         code= = _10 or >= _20 not _"_or_"
+       */
          
        Matcher matcher = patternSyntax.matcher(expression) ;
         if (matcher.find()) {
@@ -154,7 +156,7 @@ public enum Lexer {
                                return  process( columnNames.get(key).get(Query.FULL_NAME), 
                                                  tok.replaceAll(" +", " ").trim() ) ;                  
                               } catch( Exception x ) {
-                                  x.printStackTrace() ;
+                                  System.out.println( x.getCause()) ;
                               }
                               return "" ;
                            })
@@ -166,25 +168,41 @@ public enum Lexer {
          
      if( token.isEmpty()) return " " ;
          
-     else if( token.equalsIgnoreCase("=")  && expected.get().contains(token.toLowerCase()) )  { expected.set("value")               ; return "= " ; } 
+     else if( token.equalsIgnoreCase("=")   && expected.get().contains(token.toLowerCase()) )  { 
+         expected.set("value") ; return "= " ;            
+     } 
          
-     else if( token.equalsIgnoreCase("or")  && expected.get().contains(token.toLowerCase()) )  {  expected.set(">= and > < <= != ") ; return " OR (" +key ;}
+     else if( token.equalsIgnoreCase("or")  && expected.get().contains(token.toLowerCase()) )  {  
+         expected.set(">= and > < <= != ") ; return " OR (" + key ;   
+     }
          
-     else if( token.equalsIgnoreCase(">=")  && expected.get().contains(token.toLowerCase()) )  { expected.set("value")              ; return " >= " ; }
+     else if( token.equalsIgnoreCase(">=")  && expected.get().contains(token.toLowerCase()) )  { 
+         expected.set("value")  ; return " >= " ;          
+     }
          
-     else if( token.equalsIgnoreCase("and") && expected.get().contains(token.toLowerCase()) ) { expected.set(">= > = or != ")       ; return " AND (" + key  ;}
+     else if( token.equalsIgnoreCase("and") && expected.get().contains(token.toLowerCase()) )  { 
+         expected.set(">= > = or != ") ; return " AND (" + key  ; 
+     }
          
-     else if( token.equalsIgnoreCase(">")  && expected.get().contains(token.toLowerCase()) )   { expected.set("value")              ; return "> " ; }
+     else if( token.equalsIgnoreCase(">")   && expected.get().contains(token.toLowerCase()) )  { 
+         expected.set("value") ; return "> " ;            
+     }
         
-     else if( token.startsWith( "!=" ) && expected.get().contains(token.toLowerCase()) ) { expected.set("value")                    ; return  "!= " ; } 
+     else if( token.startsWith( "!=" )      && expected.get().contains(token.toLowerCase()) )  { 
+         expected.set("value")  ; return  "!= " ;          
+     } 
          
      else if( token.startsWith("_")  &&  expected.get().contains("value") ) { 
-                 expected.set("and or ") ;  return "'" + token.replaceAll("\"", "") .replaceAll("'", "").replaceFirst("_", "") + "')"   ; 
+                 expected.set("and or ")                 ; 
+                 return "'" + token.replaceAll("\"", ""  )
+                                   .replaceAll("'", ""   )
+                                   .replaceFirst("_", "" )
+                                   + "')"  ; 
      }
        
      else if( token.length() > 0 ) { 
-         throw new BusinessException(" token  [ " + token + " ] not accepted // Key = " + key ) ;
-         // throw new IllegalArgumentException(" token  [ " + token + " ] not accepted // Key = " + key ) ;  
+         throw new BusinessException ( " token  [ " + token + 
+                                       " ] not accepted // Key = " + key ) ;
      }
         
         else return "" ;

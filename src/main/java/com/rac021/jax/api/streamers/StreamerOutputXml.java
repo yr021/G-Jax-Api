@@ -19,13 +19,14 @@ import com.rac021.jax.api.manager.IDto ;
 import javax.ws.rs.core.StreamingOutput ;
 import com.rac021.jax.api.manager.IResource ;
 import com.rac021.jax.api.exceptions.BusinessException ;
+import static com.rac021.jax.api.streamers.DefaultStreamerConfigurator.* ;
 
 /**
  *
  * @author yahiaoui
  */
 
-public class StreamerOutputXml extends Streamer implements StreamingOutput, IStreamer {
+public class StreamerOutputXml extends Streamer implements StreamingOutput {
 
     public StreamerOutputXml() {
     }
@@ -33,12 +34,15 @@ public class StreamerOutputXml extends Streamer implements StreamingOutput, IStr
     @Override
     public void write(OutputStream output) throws IOException {
 
-      Writer writer = new BufferedWriter( new OutputStreamWriter(output, "UTF8") ) ;
+      System.out.println(" Processing data in StreamerOutputXml ... ") ;
+      
+      configureStreamer() ;
 
       /* Prepare THread Producers */
-      producerScheduler() ;
+      poolProducer.submit( () -> producerScheduler() ) ;      
 
-
+      Writer writer = new BufferedWriter( new OutputStreamWriter(output, "UTF8") ) ;
+      
       try (ByteArrayOutputStream baoStream = new ByteArrayOutputStream()) {
           
           Marshaller marshaller = getMashellerWithXMLProperties()       ;
@@ -47,20 +51,23 @@ public class StreamerOutputXml extends Streamer implements StreamingOutput, IStr
           writer.write("\n<Root>") ;
                
           int iteration = 0 ;
-               
+           
           while (!isFinishedProcess || !dtos.isEmpty() )         {
-                   
-            IDto poll = dtos.poll ( 200, TimeUnit.MILLISECONDS ) ;
+
+            IDto poll = dtos.poll( 50 , TimeUnit.MILLISECONDS  ) ;
                    
             if(poll != null) {
                 
-              JAXBElement<IDto> je2 = new JAXBElement<>(new QName("Data"), resource.getDto(), poll) ;
-              marshaller.marshal(je2, baoStream) ;
+              JAXBElement<IDto> je2 = new JAXBElement<>( new QName("Data") , 
+                                                         resource.getDto() , 
+                                                         poll )            ;
+              marshaller.marshal(je2, baoStream)       ;
                        
               writer.write(baoStream.toString("UTF8")) ;
-              baoStream.reset() ;
-              iteration ++      ;
-              if (iteration % loooFLush == 0 ) {
+              baoStream.reset()                        ;
+              iteration ++                             ;
+              
+              if (iteration % responseCacheSize == 0 ) {
                   writer.flush() ;
                   iteration = 0  ;
               }
@@ -71,7 +78,7 @@ public class StreamerOutputXml extends Streamer implements StreamingOutput, IStr
           writer.write("\n")        ;
           writer.flush()            ;
           writer.close()            ;
-           
+          
         } catch (IOException | JAXBException ex) {
             if (ex.getClass().getName().endsWith(".ClientAbortException")) {
                 try {
@@ -110,12 +117,8 @@ public class StreamerOutputXml extends Streamer implements StreamingOutput, IStr
     
     public StreamerOutputXml wrapResource( IResource resource , Class dto ) {
 
-      rootResourceWraper(resource, dto, null ) ;        
+      rootResourceWraper( resource, dto, null ) ;        
       return this ;
     }
 
-    @Override
-    public void setStreamerConfigurator( IStreamerConfigurator iStreamerConfigurator ) {
-        streamerConfigurator = iStreamerConfigurator ;
-    }
 }

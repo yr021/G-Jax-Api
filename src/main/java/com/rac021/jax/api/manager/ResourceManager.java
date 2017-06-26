@@ -48,22 +48,26 @@ public class ResourceManager {
         query.setParameter( 2 , limit)  ;
     }
   
-    protected List<IDto> executeSQLQuery(EntityManager manager, String sqlQuery , int limit, Class dtoClass , List<String> filterdIndex) {
+    protected List<IDto> executeSQLQuery( EntityManager manager      , 
+                                          String sqlQuery            ,
+                                          int limit, Class dtoClass  ,
+                                          List<String> filterdIndex) {
         
-        List<IDto> list = new ArrayList() ;
+        List<IDto> list = new ArrayList()                       ;
 
         if(sqlQuery == null || sqlQuery.isEmpty() ) return list ;
 
         try {
 
+            long start    = System.currentTimeMillis()                   ;
+            
             Query createSQLQuery = manager.createNativeQuery(sqlQuery)   ;
             
             int incOffset = incOffset(limit) ;
             setLimitOffsetSQLParameter(createSQLQuery, limit, incOffset) ;
            
-            long start    = System.currentTimeMillis()                                             ;
-            list          = DtoMapper.map(createSQLQuery.getResultList(), dtoClass, filterdIndex ) ;
-            long duration = System.currentTimeMillis() - start                                     ;
+            list          = DtoMapper.map(createSQLQuery.getResultList(), dtoClass, filterdIndex )   ;
+            long duration = System.currentTimeMillis() - start                                       ;
           
             System.out.println( " Size Of the Result List ---> " + list.size() + " // DURATION  --> " 
                                 + duration  + " ms // Limit  " + limit + " // Offset " + incOffset ) ;

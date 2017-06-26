@@ -9,6 +9,7 @@ import java.util.LinkedHashMap ;
  *
  * @author ryahiaoui
  */
+
 public class Query {
     
     public static final  String FULL_NAME = "FULL" ;
@@ -38,7 +39,7 @@ public class Query {
           this.parameters.computeIfAbsent( name , 
                                            k -> new HashMap<>()).put(FULL_NAME, fullName) ;
           this.parameters.computeIfAbsent( name , 
-                                           k -> new HashMap<>()).put(TYPE, type ) ;
+                                           k -> new HashMap<>()).put(TYPE, type )         ;
     }
     
     public String getFullName( String name ) {
@@ -49,7 +50,7 @@ public class Query {
         return parameters.get(name).getOrDefault(TYPE, null) ;
     }
     
-    public int size(  ) {
+    public int size(  )          {
         return parameters.size() ;
     }
 

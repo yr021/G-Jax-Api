@@ -1,89 +1,129 @@
 
 package com.rac021.jax.api.streamers ;
 
+import javax.ejb.Singleton ;
+import java.util.logging.Level ;
+import java.util.logging.Logger ;
+import java.util.concurrent.TimeUnit ;
+import java.util.concurrent.Semaphore ;
+import java.util.concurrent.BlockingQueue ;
+import java.util.concurrent.ThreadPoolExecutor ;
+import java.util.concurrent.ArrayBlockingQueue ;
+import com.rac021.jax.api.executorservice.Worker ; 
+import javax.enterprise.context.ApplicationScoped ;
+import com.rac021.jax.api.exceptions.BusinessException ;
+
 /**
  *
  * @author yahiaoui
  */
 
-public class DefaultStreamerConfigurator implements IStreamerConfigurator {
 
-    /** Default Lengh of the extraction **/
-    private int recorderLenght = 5000 ;
+@Singleton
+@ApplicationScoped
+
+public class DefaultStreamerConfigurator          {
     
-    /** Ratio  of the extraction */
-    private int ratio = 1 ;
+    /* Default Lenght of the request extraction */
+    public static int selectSize         = 5000   ;
+    
+    /** Ratio of the extraction */
+    public static int ratio              = 1      ;
     
     /*** Default Nbr Threads */
-    private int nbrCores   = 2   ;
+    public static Integer maxThreads     = null   ;
 
-    /** Default Nbr LOOPS before flush data **/
-    private int loopFlush  = 500 ;
+    /** Default cache size Response for flush data **/
+    public static int responseCacheSize  = 500    ;
 
     /** Default Block Size for Encryption **/
-    private int BlockSize = 16  ;
+    public static int blockSize          = 16     ;
 
+    /* Thread Pool Size - Shared by all services */
+    public static int threadPoolSize     = 4      ;
+  
+    /* Size of the Queue which is used by Pool   */
+    public static int workerQueue        = 5000   ;
     
-    public DefaultStreamerConfigurator( int nbrCores       , 
-                                        int recorderLenght , 
-                                        int ratio          , 
-                                        int loopFlush      ,
-                                        int blockSize   )  {
-        this.nbrCores       = nbrCores       ;
-        this.recorderLenght = recorderLenght ;
-        this.ratio          = ratio          ;
+    /* TimeOut Service */
+    public static int workerTimeOut      = 5      ;
+     
+    /* Manage Concurent Users */
+     static Semaphore semaphoreMaxConcurrentUsers ;
+
+    /* ThreadPool Worker */
+    static Worker poolProducer                    ;
+    
+    public static int maxConcurrentUsers = Integer.MAX_VALUE ;
+
+
+    static {
+      initPoolProducer()             ; 
+      initSemaphoreConcurrentUsers() ;
     }
 
-    public DefaultStreamerConfigurator() {
-    }
+    public DefaultStreamerConfigurator() { }
 
-    @Override
-    public int getRecorderLenght() {
-        return recorderLenght ;
+    public static void initSemaphoreConcurrentUsers() {
+        if( maxConcurrentUsers <= 0 ) maxConcurrentUsers = Integer.MAX_VALUE   ;
+        semaphoreMaxConcurrentUsers = new Semaphore( getMaxConcurrentUsers() ) ;
     }
-
-    @Override
-    public void setRecorderLenght(int recorderLenght) {
-        this.recorderLenght = recorderLenght ;
+    
+    public static void initPoolProducer()   {
+      
+        if( ( maxThreads != null ) && 
+              threadPoolSize < maxThreads ) {
+            try {
+                 throw new BusinessException(" maxPoolSize can't be lower than maxThreads" ) ;
+            } catch (BusinessException ex) {
+                 Logger.getLogger( DefaultStreamerConfigurator.class.getName())
+                               .                            log(Level.SEVERE, null, ex )     ;
+            }
+        }
+        
+        BlockingQueue<Runnable> blockingQueue = new ArrayBlockingQueue<>( workerQueue )      ;
+       
+        poolProducer = new Worker( threadPoolSize   ,
+                                   threadPoolSize   , 
+                                   workerTimeOut    , 
+                                   TimeUnit.MINUTES , 
+                                   blockingQueue )  ;
+     
+        poolProducer.setRejectedExecutionHandler((Runnable r, ThreadPoolExecutor executor) ->  {
+        
+          System.out.println(" --> Thread ** " + r.toString() + " ** Rejected ") ;
+           
+          try { 
+              Thread.sleep( 500 ) ; 
+          } 
+          catch (InterruptedException e) { e.printStackTrace() ; }
+          
+          System.out.println(" Retry Thread **  "+ r.toString() + " ** ") ;
+          executor.execute(r)                                             ;
+     
+        });
     }
-
-    @Override
-    public int getRatio() {
+    
+    public static int getMaxConcurrentUsers() {
+        return maxConcurrentUsers ;
+    }
+    public static int getSelectSize()         {
+        return selectSize ;
+    }
+    public static int getRatio()              {
         return ratio ;
     }
-
-    @Override
-    public void setRatio(int ratio) {
-        this.ratio = ratio ;
+    public static int getMaxThreads()         {
+        return maxThreads ;
     }
-
-    @Override
-    public int getNbrCores() {
-        return nbrCores ;
+    public static int getResponseCacheSize()  {
+        return responseCacheSize ;
     }
-
-    @Override
-    public void setNbrCores(int nbrCores) {
-        this.nbrCores = nbrCores ;
+    public static int getBlockSize()          {
+        return blockSize ;
     }
-
-    @Override
-    public int getLoopFlush() {
-        return loopFlush ;
+    public static int getThreadPoolSize()     {
+        return threadPoolSize ;
     }
-
-    @Override
-    public void setLoopFlush(int LoopFlush) {
-        this.loopFlush = LoopFlush ;
-    }
-
-    @Override
-    public int getBlockSize() {
-        return BlockSize ;
-    }
-
-    @Override
-    public void setBlockSize(int BlockSize) {
-        this.BlockSize = BlockSize ;
-    }    
+    
 }

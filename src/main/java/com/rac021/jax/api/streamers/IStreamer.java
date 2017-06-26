@@ -8,5 +8,5 @@ package com.rac021.jax.api.streamers ;
 
 public interface IStreamer {
 
-    void setStreamerConfigurator( IStreamerConfigurator iStreamerConfigurator ) ;
+   void setStreamerConfigurator( IStreamerConfigurator iStreamerConfigurator ) ;
 }

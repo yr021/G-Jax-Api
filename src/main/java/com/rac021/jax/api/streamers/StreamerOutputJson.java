@@ -19,13 +19,15 @@ import com.rac021.jax.api.manager.IDto ;
 import javax.ws.rs.core.StreamingOutput ;
 import com.rac021.jax.api.manager.IResource ;
 import com.rac021.jax.api.exceptions.BusinessException ;
+import static com.rac021.jax.api.streamers.DefaultStreamerConfigurator.* ;
 
 /**
  *
  * @author yahiaoui
  */
 
-public class StreamerOutputJson extends Streamer implements StreamingOutput, IStreamer {
+public class StreamerOutputJson extends Streamer implements StreamingOutput //, IStreamer 
+{
 
     public StreamerOutputJson() {
     }
@@ -33,15 +35,18 @@ public class StreamerOutputJson extends Streamer implements StreamingOutput, ISt
     @Override
     public void write(OutputStream output) throws IOException {
         
-        Writer writer = new BufferedWriter ( new OutputStreamWriter(output, "UTF8")) ;
+       System.out.println(" Processing data in StreamerOutputJson ... ") ;
+       
+       configureStreamer() ;
 
-        /* Prepare Producers Threads */
-        
-        producerScheduler() ;
+       /* Submit Producers */
+       poolProducer.submit( () -> producerScheduler() ) ;      
+      
+       Writer writer = new BufferedWriter ( new OutputStreamWriter(output, "UTF8")) ;
 
-        ByteArrayOutputStream baoStream = new ByteArrayOutputStream() ;
+       ByteArrayOutputStream baoStream = new ByteArrayOutputStream() ;
 
-        try {
+       try {
 
             System.setProperty( "javax.xml.bind.context.factory" ,
                                 "org.eclipse.persistenputce.jaxb.JAXBContextFactory") ;
@@ -51,7 +56,7 @@ public class StreamerOutputJson extends Streamer implements StreamingOutput, ISt
 
             while (!isFinishedProcess || !dtos.isEmpty())          {
 
-                IDto poll = dtos.poll(200, TimeUnit.MILLISECONDS)  ;
+                IDto poll = dtos.poll( 50 , TimeUnit.MILLISECONDS)  ;
                    
                 if( poll != null ) {
                     
@@ -59,14 +64,13 @@ public class StreamerOutputJson extends Streamer implements StreamingOutput, ISt
                                                                   resource.getDto() , 
                                                                   poll            ) ;
                       
-                      marshaller.marshal(je2, baoStream)             ;
+                      marshaller.marshal(je2, baoStream)       ;
 
-                      writer.write(baoStream.toString("UTF8"))        ;
-                      baoStream.reset()                               ;
-                      iteration ++                                    ;
+                      writer.write(baoStream.toString("UTF8")) ;
+                      baoStream.reset()                        ;
+                      iteration ++                             ;
                       
-                      if (iteration % loooFLush == 0)  writer.flush() ;
-                      
+                      if (iteration % responseCacheSize == 0 )  writer.flush() ;
                 }
              }
 
@@ -75,6 +79,7 @@ public class StreamerOutputJson extends Streamer implements StreamingOutput, ISt
              baoStream.close() ;
 
         } catch (JAXBException | IOException ex) {
+            
             if (ex.getClass().getName().endsWith(".ClientAbortException")) {
                 try {
                     writer.close()    ;
@@ -85,9 +90,9 @@ public class StreamerOutputJson extends Streamer implements StreamingOutput, ISt
                 }
             } else {
                 try {
-                    writer.close();
-                    baoStream.close();
-                    throw new BusinessException("Exception : " + ex.getMessage(), ex);
+                    writer.close()    ;
+                    baoStream.close() ;
+                    throw new BusinessException("Exception : " + ex.getMessage(), ex) ;
                 } catch (IOException | BusinessException ex1) {
                     Logger.getLogger(StreamerOutputJson.class.getName()).log(Level.SEVERE, null, ex1) ;
                 }
@@ -109,20 +114,14 @@ public class StreamerOutputJson extends Streamer implements StreamingOutput, ISt
                                             String    filteredNmames ,
                                             MultivaluedMap<String, String> ... sqlParams ) {
 
-        rootResourceWraper(resource, dto, filteredNmames, sqlParams ) ;
+        rootResourceWraper( resource, dto, filteredNmames, sqlParams ) ;
         
         return this ;
     }
     
     public StreamerOutputJson wrapResource( IResource resource , Class dto ) {
 
-        rootResourceWraper(resource, dto, null ) ;        
-        return this ;
+        rootResourceWraper( resource, dto, null ) ;        
+        return this                               ;
     }
-
-    @Override
-    public void setStreamerConfigurator(IStreamerConfigurator iStreamerConfigurator) {
-        streamerConfigurator = iStreamerConfigurator ;
-    }
-
 }

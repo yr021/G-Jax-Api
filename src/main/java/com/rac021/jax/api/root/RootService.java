@@ -9,6 +9,8 @@ import javax.enterprise.inject.Any ;
 import javax.annotation.PostConstruct ;
 import javax.enterprise.inject.Instance ;
 import com.rac021.jax.api.security.ISignOn ;
+import com.rac021.jax.api.crypto.CipherTypes ;
+import com.rac021.jax.api.crypto.JceSecurity ;
 import javax.enterprise.util.AnnotationLiteral ;
 import javax.enterprise.context.ApplicationScoped ;
 import com.rac021.jax.api.qualifiers.security.Custom ;
@@ -47,27 +49,31 @@ public class RootService implements IRootService {
     @Inject @Any
     private Instance<ISignOn> signOn ;
 
+    //public static Semaphore semaphore  ;
+      
     public RootService() {
     }
 
    @PostConstruct
-   public void init() {
+   public void init()       {
+      JceSecurity.unlimit() ;
    }
 
     @Override
     @Path( SERVICENAME )
-    public Object subResourceLocators( @HeaderParam("API-key-Token")   String token     ,
-                                       @HeaderParam("accept")          String accept    ,
+    public Object subResourceLocators( @HeaderParam("API-key-Token")   String token   ,
+                                       @HeaderParam("accept")          String accept  ,
+                                       @HeaderParam("cipher")          String cipher  ,
                                        @PathParam(SERVICENAME_P) final String codeService ) throws BusinessException {
         
-        if( accept.contains("encrypted") && token == null )
-            throw new BusinessException(" Header [API-key-Token] can't be NULL for secured services ") ;
+        if( accept != null && accept.contains("encrypted") && token == null )
+            throw new BusinessException(" Header [ API-key-Token ] can't be NULL for secured services ") ;
         
         Policy policy = servicesManager.contains(codeService) ;
 
         if( policy == null ) throw new BusinessException("Unavailable Service") ;
         
-        if( policy == Policy.Public ) {
+        if( policy == Policy.Public )          {
             if(  accept.contains("encrypted")) {
               throw new BusinessException(" Public Services can't be Encrypted ") ;
             }
@@ -82,6 +88,14 @@ public class RootService implements IRootService {
         
         if( token == null )  throw new BusinessException(" Authentication Required. Missing Header [ API-key-Token ] ") ;
         
+        if( ! servicesManager.containAcceptForService( codeService, accept ))   {
+           throw new BusinessException (" The service [ " + codeService 
+                                                          + " ] Does not authorize Accept Header [ " + accept + " ] " )  ;
+        }
+        if( ! servicesManager.containCiphersForService( codeService, cipher)) {
+           throw new BusinessException (" The service [ " + codeService + " ] Doesn't support  " + cipher ) ;
+        }
+        
         if( policy == Policy.CustomSignOn ) {
 
             if( signOn.select(new AnnotationLiteral<Custom>() {}).get() == null ) {
@@ -94,6 +108,14 @@ public class RootService implements IRootService {
                                                                       signOn.select(new AnnotationLiteral<Custom>() {})
                                                                             .get().getConfigurator()
                                                                             .getValidRequestTimeout() ) ) {
+                if( cipher == null ) {
+                    System.out.println(" -- Default cipher : " + CipherTypes.AES_128_ECB.name()) ;
+                    ISignOn.CIPHER.set( CipherTypes.AES_128_ECB.name() ) ;
+                }
+                else { 
+                    ISignOn.CIPHER.set(cipher.trim())   ; 
+                }
+                
                 return servicesManager.get(codeService) ;
             }
         }

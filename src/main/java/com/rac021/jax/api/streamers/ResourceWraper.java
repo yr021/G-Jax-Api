@@ -14,16 +14,18 @@ import com.rac021.jax.api.manager.IResource ;
 
 public class ResourceWraper extends com.rac021.jax.api.manager.ResourceManager {
    
-    private   final IResource     resource ;
-    private   final Class         dto      ;
-
-    protected final List<String>  queries  ;
+    private   final IResource     resource    ;
+    private   final Class         dto         ;
+    protected final List<String>  queries     ;
     
     
-    public ResourceWraper( IResource resource, Class dto , List<String> queries ) {
-        this.resource = resource ;
-        this.dto      = dto      ;
-        this.queries  = queries  ;
+    public ResourceWraper( IResource resource , 
+                           Class dto          ,  
+                           List<String> queries ) {
+        
+        this.resource    = resource    ;
+        this.dto         = dto         ;
+        this.queries     = queries     ;
     }
 
     public IResource getResource() {
@@ -33,7 +35,6 @@ public class ResourceWraper extends com.rac021.jax.api.manager.ResourceManager {
     public Class getDto() {
         return dto ;
     }
-    
     
     public List<IDto> getDtoIterable( EntityManager em , 
                                       int indexRequest , 
@@ -70,4 +71,5 @@ public class ResourceWraper extends com.rac021.jax.api.manager.ResourceManager {
 
     private void initQueryParameter() {
     }
+
 }
