@@ -222,7 +222,7 @@ public class ServicesManager {
     public boolean containAcceptForService( String serviceName, String accept )  {
         return this.accept.containsKey(serviceName) ? 
                this.accept.get(serviceName)
-                          .contains( AcceptType.valueOf( 
+                          .contains( AcceptType.toAcceptTypes( 
                                         accept.toUpperCase().replace("/", "_"))) :
                false ;
     }
