@@ -2,8 +2,10 @@
 package com.rac021.jax.api.crypto ;
 
 import java.util.List ;
-import java.util.ArrayList ;
+import java.util.logging.Level ;
+import java.util.logging.Logger ;
 import java.util.stream.Collectors ;
+import com.rac021.jax.api.exceptions.BusinessException ;
 
 /**
  *
@@ -19,24 +21,50 @@ public enum AcceptType {
     
     private final String name         ;
 
-    private AcceptType( String name) {
+    private AcceptType( String name)  {
         this.name = name ;
     }
     
     public static List<AcceptType> toList( List<String> list ) {
      
        try {
-         return list.stream()
-                    .map( accept_t -> AcceptType.valueOf( accept_t.trim()
-                                                .replace("/", "_")))
-                    .collect(Collectors.toList()) ;
-        } catch( Exception ex ) {
-            System.out.println( " ************************************** ") ;
-            System.out.println(" Exception in CipherTypes List : " + list ) ;
-            System.out.println( ex.getCause()                             ) ;
-            System.out.println( " ************************************** ") ;
-        }
+           return list.stream()
+                      .map( accept_t -> AcceptType.valueOf( accept_t.trim()
+                                                  .replace("/", "_")))
+                      .collect(Collectors.toList()) ;
+       } catch( Exception ex ) {
+           try {
+           throw new BusinessException( " AcceptType List [ " + list + " ] "
+                                        + "not supported ! \n "
+                                        + "// Cause :" + ex.getCause()  )    ;
+           } catch( BusinessException ex1 ) {
+             Logger.getLogger(AcceptType.class.getName())
+                                              .log(Level.SEVERE, null, ex1 )  ;   
+             Logger.getLogger(AcceptType.class.getName())
+                                              .log(Level.SEVERE, null, ex ) ;   
+           }
+       }
+       return null ;
         
-       return new ArrayList() ;
+    }
+    
+    public static AcceptType toAcceptTypes( String acceptType )           {
+        
+      try {
+            return  AcceptType.valueOf( acceptType.trim()) ;
+      } catch( Exception ex ) {
+          try {
+              throw new BusinessException( " AcceptType  [ " + acceptType + 
+                                           " ] not supported ! " )        ;
+          } catch (BusinessException ex1) {
+              Logger.getLogger(AcceptType.class.getName())
+                                         .log(Level.SEVERE, null, ex1 )   ;
+              Logger.getLogger(AcceptType.class.getName())
+                                         .log(Level.SEVERE, null, ex )    ;
+          }
+      }
+      
+      return null ;
+        
     }
 }
