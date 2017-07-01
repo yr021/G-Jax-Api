@@ -54,9 +54,10 @@ public class DefaultStreamerConfigurator          {
     /* ThreadPool Worker */
     static Worker poolProducer                    ;
     
+    /* Max Concurrent Users */
     public static int maxConcurrentUsers = Integer.MAX_VALUE ;
 
-
+    
     static {
       initPoolProducer()             ; 
       initSemaphoreConcurrentUsers() ;
@@ -71,8 +72,7 @@ public class DefaultStreamerConfigurator          {
     
     public static void initPoolProducer()   {
       
-        if( ( maxThreads != null ) && 
-              threadPoolSize < maxThreads ) {
+        if( ( maxThreads != null ) && threadPoolSize < maxThreads )  {
             try {
                  throw new BusinessException(" maxPoolSize can't be lower than maxThreads" ) ;
             } catch (BusinessException ex) {
@@ -89,17 +89,17 @@ public class DefaultStreamerConfigurator          {
                                    TimeUnit.MINUTES , 
                                    blockingQueue )  ;
      
-        poolProducer.setRejectedExecutionHandler((Runnable r, ThreadPoolExecutor executor) ->  {
+        poolProducer.setRejectedExecutionHandler( (Runnable r, ThreadPoolExecutor executor) ->  {
         
-          System.out.println(" --> Thread ** " + r.toString() + " ** Rejected ") ;
+        System.out.println(" --> Thread ** " + r.toString() + " ** Rejected ") ;
            
-          try { 
+        try { 
               Thread.sleep( 500 ) ; 
-          } 
-          catch (InterruptedException e) { e.printStackTrace() ; }
+        } 
+        catch (InterruptedException e) { e.printStackTrace() ; }
           
-          System.out.println(" Retry Thread **  "+ r.toString() + " ** ") ;
-          executor.execute(r)                                             ;
+        System.out.println(" Retry Thread **  "+ r.toString() + " ** ") ;
+        executor.execute(r)                                             ;
      
         });
     }
