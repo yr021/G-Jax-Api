@@ -4,6 +4,7 @@ package com.rac021.jax.api.root ;
 import java.util.Set ;
 import java.util.Map ;
 import java.util.List ;
+import java.util.Arrays ;
 import java.util.HashSet ;
 import javax.ejb.Startup ;
 import java.util.HashMap ;
@@ -11,12 +12,16 @@ import javax.inject.Inject ;
 import javax.ejb.Singleton ;
 import java.util.ArrayList ;
 import java.sql.Connection ;
+import javax.ws.rs.Produces ;
+import java.util.stream.Stream ;
 import java.util.logging.Level ;
 import java.lang.reflect.Field ;
+import java.lang.reflect.Method ;
 import java.util.logging.Logger ; 
 import javax.annotation.PostConstruct ;
 import com.rac021.jax.api.pojos.Query ;
 import javax.persistence.EntityManager ;
+import java.lang.annotation.Annotation ;
 import javax.enterprise.inject.spi.Bean ;
 import javax.persistence.PersistenceContext ;
 import com.rac021.jax.api.crypto.AcceptType ;
@@ -24,8 +29,10 @@ import com.rac021.jax.api.crypto.CipherTypes ;
 import com.rac021.jax.api.qualifiers.SqlQuery ;
 import com.rac021.jax.api.analyzer.SqlAnalyzer ;
 import javax.enterprise.inject.spi.BeanManager ;
+import static java.util.stream.Collectors.toList ;
 import javax.enterprise.context.ApplicationScoped ;
 import com.rac021.jax.api.qualifiers.ServiceRegistry ;
+import com.rac021.jax.api.qualifiers.security.Cipher ;
 import com.rac021.jax.api.qualifiers.security.Policy ;
 import com.rac021.jax.api.qualifiers.ResourceRegistry ;
 import com.rac021.jax.api.qualifiers.security.Secured ;
@@ -140,9 +147,53 @@ public class ServicesManager {
                String          serviceName     = service.getAnnotation( ServiceRegistry.class ).value() ;
              
                Bean<Object> bean = (Bean<Object>) bm.resolve(bm.getBeans(service, serviceRegistry ) )   ;
+              
                if(bean != null ) {
-                   Object cdiService = (Object) bm.getReference( bean, bean.getBeanClass(), bm.createCreationalContext(bean)) ;
+                   
+                   Object cdiService = (Object) bm.getReference( bean, bean.getBeanClass(), 
+                                                                 bm.createCreationalContext(bean) )     ;
                    registerService( serviceName , cdiService ) ;
+                   
+                   Cipher cipherAnnotation   = getInstanceAnnotationFromClass( cdiService.getClass()    ,
+                                                                               Cipher.class )           ;
+                   
+                   if( cipherAnnotation != null ) {
+                       registerCiphers( serviceName , 
+                                        Arrays.asList(cipherAnnotation.cipherType()) )                  ;
+                   }
+                   
+                   Method[] methods     = cdiService.getClass().getMethods()                            ;
+
+                   List<String> typeList = new ArrayList()                                              ;
+                   boolean existProduces = false                                                        ;
+                   
+                   for (final Method method : methods) {
+                       
+                     Annotation[] annotations = method.getAnnotations() ;
+                       
+                     if (method.isAnnotationPresent(Produces.class))    {
+                       
+                         List<String> types = Stream.of ( method.getAnnotation(Produces.class).value())
+                                                    .map ( type -> type.toUpperCase())
+                                                    .collect(toList()) ; 
+                         typeList.addAll(types) ;
+                           
+                        } else {
+                           existProduces = true ;                                
+                        }
+                        
+                     }
+                   
+                     if ( ! typeList.isEmpty() ) {
+                         registerAcceptTypes(serviceName, AcceptType.toList(typeList)) ;
+                     }
+                     
+                     else if( existProduces && typeList.isEmpty() ) {
+                        registerAcceptTypes(serviceName, Arrays.asList( AcceptType.XML_PLAIN        ,
+                                                                        AcceptType.XML_ENCRYPTED    , 
+                                                                        AcceptType.JSON_PLAIN       ,
+                                                                        AcceptType.JSON_ENCRYPTED)) ;
+                     }                                      
                }
           
           } catch(ClassNotFoundException x) {
@@ -168,6 +219,20 @@ public class ServicesManager {
     }
     
 
+    private <T> T getInstanceAnnotationFromClass( Class clazz, Class<T> annotToFind ) {
+        
+        Annotation[] annotations = clazz.getAnnotations() ;
+
+        for(Annotation annotation : annotations ) {
+            
+          if ( annotToFind.isAssignableFrom(annotation.getClass())) {
+              return (T) annotation ;             
+          }
+        }
+    
+       return null ;
+    }
+    
     public void extractAndRegisterQueries (Class resource, Class queryAnnotation ) {
       
      Connection cnn  = entityManager.unwrap(java.sql.Connection.class )  ;
