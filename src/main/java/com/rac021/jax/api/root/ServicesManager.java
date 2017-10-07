@@ -76,18 +76,21 @@ public class ServicesManager {
     
     public void registerService( String id, Object service ) {
         
-        if(service.getClass().getAnnotation(Secured.class) != null ) {
+        if ( service.getClass().getAnnotation(Secured.class) != null ) {
             Secured annotation = service.getClass().getAnnotation(Secured.class);
             String  policy     = annotation.policy().name()  ;
-            if( policy.equalsIgnoreCase(Policy.CustomSignOn.name())) {
+            if ( policy.equalsIgnoreCase(Policy.CustomSignOn.name()) ) {
                 this.customSignOnServices.put( id, service ) ;
             }
-            else if( policy.equalsIgnoreCase(Policy.SSO.name())) {
+            else if ( policy.equalsIgnoreCase(Policy.SSO.name()) ) {
                 this.ssoServices.put( id, service ) ;
+            }
+            else {
+                this.publicServices.put( id, service ) ;
             }
         }
         else {
-            this.publicServices.put(id, service ) ;
+            this.publicServices.put( id, service ) ;
         }
     }
     
